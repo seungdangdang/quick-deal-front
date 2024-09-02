@@ -11,9 +11,9 @@ const MainPage = () => {
   }
 
   return (
-      <div>
+      <>
         <ProductList products={products}/>
-      </div>
+      </>
   );
 };
 
