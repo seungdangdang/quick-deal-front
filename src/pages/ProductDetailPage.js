@@ -1,6 +1,6 @@
 import {useParams} from "react-router-dom";
 import useAxiosGet from "../hooks/useAxiosGet";
-import "../styles/ProductDetailPage.css";
+import "../styles/ProductDetail.css";
 import {API_URL} from "../config";
 import ProductDetail from "../components/ProductDetail";
 
