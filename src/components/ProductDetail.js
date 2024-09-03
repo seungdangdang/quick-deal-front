@@ -1,6 +1,6 @@
-import React, {useRef, useState} from "react";
+import React, {useRef, useState} from "react"
 import {API_URL} from "../config";
-import axios from "axios";
+import axios from "axios"
 
 const ProductDetail = ({product}) => {
   const [showModal, setShowModal] = useState(false);
@@ -107,13 +107,26 @@ const ProductDetail = ({product}) => {
     // TODO: 결제 진행
   };
 
-  const handleCancelPolling = () => {
+  const handleCancelPolling = async () => {
     clearInterval(pollingIntervalRef.current);
     setPolling(false);
-    //TODO: 세션스토리지 데이터 제거
-    //TODO: 주문취소 API 호출
-    alert('대기 취소가 완료되었습니다.');
-    closeModal();
+
+    const orderId = sessionStorage.getItem('orderId');
+    const userId = localStorage.getItem('userid');
+    sessionStorage.removeItem('orderId');
+    sessionStorage.removeItem('ticketToken');
+
+    try {
+      await axios.delete(`${API_URL}/orders/${orderId}`, {
+        params: {userId}
+      });
+
+      alert('대기 취소가 완료되었습니다.');
+      closeModal();
+    } catch (error) {
+      console.error('대기 취소 중 오류가 발생했습니다:', error);
+      alert('대기 취소 중 오류가 발생했습니다. 다시 시도해주세요.');
+    }
   };
 
   const closeModal = () => {
@@ -155,10 +168,8 @@ const ProductDetail = ({product}) => {
                       <p>결제 페이지 대기 중입니다...</p>
                       <button onClick={handleCancelPolling}>대기 취소</button>
                     </>
-                ) : isOrderCompleted ? (
-                    <p>주문이 완료되었습니다!</p>
                 ) : (
-                    <p>주문 중...</p>
+                    <p>진행 중...</p>
                 )}
               </div>
             </div>
