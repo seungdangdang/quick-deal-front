@@ -9,6 +9,7 @@ const ProductDetail = ({product}) => {
   const [loading, setLoading] = useState(false);
   const [orderData, setOrderData] = useState(null);
   const [polling, setPolling] = useState(false);
+  const [remainingInQueue, setRemainingInQueue] = useState(null);
   const pollingIntervalRef = useRef(null);
 
   if (!product) {
@@ -84,6 +85,7 @@ const ProductDetail = ({product}) => {
         });
 
         console.log('폴링 중... 결제 페이지 접근 상태:', queueResponse.data);
+        setRemainingInQueue(queueResponse.data.numberOfRemainingInQueue);
 
         if (queueResponse.data.status === 'ACCESS_GRANTED') {
           //TODO: 반환 데이터의 결제 제한 시간 적용
@@ -166,6 +168,9 @@ const ProductDetail = ({product}) => {
                 ) : polling ? (
                     <>
                       <p>결제 페이지 대기 중입니다...</p>
+                      {remainingInQueue !== null && (
+                          <p>현재 대기 중인 인원: {remainingInQueue}명</p>
+                      )}
                       <button onClick={handleCancelPolling}>대기 취소</button>
                     </>
                 ) : (
