@@ -3,7 +3,8 @@ import {API_URL} from "../config";
 import axios from "axios"
 
 const ProductDetail = ({product}) => {
-  const [showModal, setShowModal] = useState(false);
+  const [showQueueModal, setShowQueueModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isOrderCompleted, setIsOrderCompleted] = useState(false);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -21,12 +22,12 @@ const ProductDetail = ({product}) => {
 
     if (!userId) {
       setIsUserLoggedIn(false);
-      setShowModal(true);
+      setShowQueueModal(true);
       return;
     }
 
     setIsUserLoggedIn(true);
-    setShowModal(true);
+    setShowQueueModal(true);
     setIsOrderCompleted(false);
     setLoading(true);
 
@@ -104,12 +105,11 @@ const ProductDetail = ({product}) => {
 
   const handlePaymentAccessGranted = () => {
     setPolling(false);
-    closeModal();
-    // TODO: 결제 진행을 위한 새로운 모달 창 열기
-    // TODO: 결제 진행
+    setShowQueueModal(false);
+    setShowPaymentModal(true);
   };
 
-  const handleCancelPolling = async () => {
+  const handleCancelOrder = async () => {
     clearInterval(pollingIntervalRef.current);
     setPolling(false);
 
@@ -123,17 +123,18 @@ const ProductDetail = ({product}) => {
         params: {userId}
       });
 
-      alert('대기 취소가 완료되었습니다.');
+      alert('주문 취소가 완료되었습니다.');
       closeModal();
     } catch (error) {
-      console.error('대기 취소 중 오류가 발생했습니다:', error);
-      alert('대기 취소 중 오류가 발생했습니다. 다시 시도해주세요.');
+      console.error('주문 취소 중 오류가 발생했습니다:', error);
+      alert('주문 취소 중 오류가 발생했습니다. 다시 시도해주세요.');
     }
   };
 
   const closeModal = () => {
     clearInterval(pollingIntervalRef.current);
-    setShowModal(false);
+    setShowQueueModal(false);
+    setShowPaymentModal(false);
   };
 
   return (
@@ -150,11 +151,11 @@ const ProductDetail = ({product}) => {
           <p>{product.price}</p>
           <p>{product.categoryName}</p> {/* TODO: 배지로 처리할 것 */}
           <button className='purchase-button' onClick={handlePurchase}>
-            구매하기
+            주문하기
           </button>
         </div>
 
-        {showModal && (
+        {showQueueModal && (
             <div className='modal' onClick={closeModal}>
               <div className='modal-content'
                    onClick={(e) => e.stopPropagation()}>
@@ -167,11 +168,11 @@ const ProductDetail = ({product}) => {
                     <p>주문을 처리 중입니다. 잠시만 기다려 주세요...</p>
                 ) : polling ? (
                     <>
-                      <p>결제 페이지 대기 중입니다...</p>
-                      {remainingInQueue !== null && (
-                          <p>현재 대기 중인 인원: {remainingInQueue}명</p>
-                      )}
-                      <button onClick={handleCancelPolling}>대기 취소</button>
+                      <p>결제 페이지 대기 중입니다</p>
+                      <p>현재 대기 중인 인원: {
+                        remainingInQueue !== null ? `${remainingInQueue}명`
+                            : '(계산 중...)'}</p>
+                      <button onClick={handleCancelOrder}>대기 취소</button>
                     </>
                 ) : (
                     <p>진행 중...</p>
@@ -179,7 +180,37 @@ const ProductDetail = ({product}) => {
               </div>
             </div>
         )}
-      </div>);
+
+        {showPaymentModal && (
+            <div className='modal' onClick={closeModal}>
+              <div className='modal-content'
+                   onClick={(e) => e.stopPropagation()}>
+                <h2 style={{textAlign: 'center', fontWeight: 'bold'}}>결제하기</h2>
+                <table>
+                  <thead>
+                  <tr>
+                    <th>주문 상품</th>
+                    <th>수량</th>
+                    <th>주문 금액</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  <tr>
+                    <td>{product.name}</td>
+                    <td>1</td>
+                    <td>{product.price}</td>
+                  </tr>
+                  </tbody>
+                </table>
+                <button className='purchase-button'>결제하기</button>
+                <button className='cancel-button'
+                        onClick={handleCancelOrder}>취소
+                </button>
+              </div>
+            </div>
+        )}
+      </div>
+  );
 };
 
 export default ProductDetail;
