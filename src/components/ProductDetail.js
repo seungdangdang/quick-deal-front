@@ -1,19 +1,18 @@
 import React, {useRef, useState} from "react";
-import {API_URL} from "../config";
 import axios from "axios";
+import {API_URL} from "../config";
+import {useNavigate} from "react-router-dom";
 
 const ProductDetail = ({product}) => {
   const [showQueueModal, setShowQueueModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [isOrderCompleted, setIsOrderCompleted] = useState(false);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(true);
   const [loading, setLoading] = useState(false);
   const [orderData, setOrderData] = useState(null);
   const [polling, setPolling] = useState(false);
-  const [remainingTime, setRemainingTime] = useState(null);
   const [remainingInQueue, setRemainingInQueue] = useState(null);
+  const [productId, setProductId] = useState(product.id);
   const pollingIntervalRef = useRef(null);
-  const countdownIntervalRef = useRef(null);
+  const navigate = useNavigate();
 
   if (!product) {
     return null;
@@ -30,7 +29,6 @@ const ProductDetail = ({product}) => {
 
     setIsUserLoggedIn(true);
     setShowQueueModal(true);
-    setIsOrderCompleted(false);
     setLoading(true);
 
     try {
@@ -51,7 +49,7 @@ const ProductDetail = ({product}) => {
         sessionStorage.setItem("ticketToken", ticketToken);
 
         setOrderData(response.data);
-        setIsOrderCompleted(true);
+        setProductId(product.id);
 
         const queueResponse = await axios.post(`${API_URL}/queue`, null, {
           params: {ticketToken},
@@ -62,7 +60,7 @@ const ProductDetail = ({product}) => {
         if (queueResponse.data.status === "ACCESS_DENIED") {
           startPolling(ticketToken);
         } else if (queueResponse.data.status === "ACCESS_GRANTED") {
-          handlePaymentAccessGranted(queueResponse.data.timeLimit);
+          navigate(`/products/${productId}/payment`, {state: {product}});
         }
       }
     } catch (error) {
@@ -71,6 +69,26 @@ const ProductDetail = ({product}) => {
       closeModal();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    const orderId = sessionStorage.getItem("orderId");
+    const userId = localStorage.getItem("userid");
+    sessionStorage.removeItem("orderId");
+    sessionStorage.removeItem("ticketToken");
+
+    try {
+      await axios.delete(`${API_URL}/orders/${orderId}`, {
+        params: {userId},
+      });
+
+      alert("대기 취소가 완료되었습니다.");
+      closeModal();
+      window.location.reload();
+    } catch (error) {
+      console.error("대기 취소 중 오류가 발생했습니다:", error);
+      alert("대기 취소 중 오류가 발생했습니다. 다시 시도해주세요.");
     }
   };
 
@@ -88,7 +106,7 @@ const ProductDetail = ({product}) => {
 
         if (queueResponse.data.status === "ACCESS_GRANTED") {
           clearInterval(pollingIntervalRef.current);
-          handlePaymentAccessGranted(queueResponse.data.timeLimit);
+          navigate(`/products/${productId}/payment`, {state: {product}});
         } else if (queueResponse.data.status === "ITEM_SOLD_OUT") {
           clearInterval(pollingIntervalRef.current);
           alert("상품이 품절되었습니다.");
@@ -100,100 +118,9 @@ const ProductDetail = ({product}) => {
     }, 3000);
   };
 
-  const handlePaymentAccessGranted = (timeLimit) => {
-    setPolling(false);
-    setShowQueueModal(false);
-    openPaymentModal(timeLimit);
-  };
-
-  const openPaymentModal = (timeLimit) => {
-    setShowPaymentModal(true);
-    startCountdown(timeLimit);
-  };
-
-  const startCountdown = (timeLimit) => {
-    const targetTime = timeLimit * 1000;
-    countdownIntervalRef.current = setInterval(() => {
-      const currentTime = new Date().getTime();
-      const remaining = Math.max(0,
-          Math.floor((targetTime - currentTime) / 1000));
-      setRemainingTime(remaining);
-
-      if (remaining === 0) {
-        clearInterval(countdownIntervalRef.current);
-        alert("시간이 만료되어 결제가 취소됩니다.");
-        handleCancelOrder();
-      }
-    }, 1000);
-  };
-
-  const handleCancelOrder = async () => {
-    clearInterval(pollingIntervalRef.current);
-    clearInterval(countdownIntervalRef.current);
-    setPolling(false);
-
-    const orderId = sessionStorage.getItem("orderId");
-    const userId = localStorage.getItem("userid");
-    sessionStorage.removeItem("orderId");
-    sessionStorage.removeItem("ticketToken");
-
-    try {
-      await axios.delete(`${API_URL}/orders/${orderId}`, {
-        params: {userId},
-      });
-
-      alert("주문 취소가 완료되었습니다.");
-      closeModal();
-      window.location.reload();
-    } catch (error) {
-      console.error("주문 취소 중 오류가 발생했습니다:", error);
-      alert("주문 취소 중 오류가 발생했습니다. 다시 시도해주세요.");
-    }
-  };
-
-  const handlePayment = async () => {
-    const userId = localStorage.getItem("userid");
-    const orderId = sessionStorage.getItem("orderId");
-
-    try {
-      const response = await axios.post(
-          `${API_URL}/products/${product.id}/payment`,
-          {
-            userId: userId,
-            orderId: parseInt(orderId, 10), // orderId를 숫자로 변환하여 전송
-            paymentAmount: parseInt(product.paymentAmount, 10)
-          }
-      );
-
-      if (response.data.status === "PAYMENT_COMPLETED") {
-        alert("결제가 완료되었습니다.");
-        closeModal();
-        window.location.reload();
-      } else if (response.data.status === "ITEM_SOLD_OUT") {
-        alert("제품이 품절되었습니다. 주문을 취소합니다.");
-        closeModal();
-        window.location.reload();
-      } else {
-        alert("결제 중 오류가 발생했습니다. 다시 시도해주세요.");
-      }
-    } catch (error) {
-      console.error("결제 처리 중 오류가 발생했습니다:", error);
-      alert("결제 처리 중 오류가 발생했습니다. 다시 시도해주세요.");
-    }
-  }
-
   const closeModal = () => {
     clearInterval(pollingIntervalRef.current);
-    clearInterval(countdownIntervalRef.current);
     setShowQueueModal(false);
-    setShowPaymentModal(false);
-  };
-
-  // 분과 초 형식으로 변환하는 함수
-  const formatTime = (timeInSeconds) => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = timeInSeconds % 60;
-    return `${minutes}분 ${seconds}초`;
   };
 
   return (
@@ -215,7 +142,7 @@ const ProductDetail = ({product}) => {
         </div>
 
         {showQueueModal && (
-            <div className="modal" onClick={closeModal}>
+            <div className="modal">
               <div className="modal-content"
                    onClick={(e) => e.stopPropagation()}>
                 <button className="close-button" onClick={closeModal}>
@@ -233,43 +160,14 @@ const ProductDetail = ({product}) => {
                         {remainingInQueue !== null ? `${remainingInQueue}명`
                             : "(계산 중...)"}
                       </p>
-                      <button onClick={handleCancelOrder}>대기 취소</button>
+                      <button className="cancel-button"
+                              onClick={handleCancelOrder}>
+                        취소
+                      </button>
                     </>
                 ) : (
                     <p>진행 중...</p>
                 )}
-              </div>
-            </div>
-        )}
-
-        {showPaymentModal && (
-            <div className="modal" onClick={closeModal}>
-              <div className="modal-content"
-                   onClick={(e) => e.stopPropagation()}>
-                <h2 style={{textAlign: "center", fontWeight: "bold"}}>결제하기</h2>
-                <table>
-                  <thead>
-                  <tr>
-                    <th>주문 상품</th>
-                    <th>수량</th>
-                    <th>주문 금액</th>
-                  </tr>
-                  </thead>
-                  <tbody>
-                  <tr>
-                    <td>{product.name}</td>
-                    <td>1</td>
-                    <td>{product.price}</td>
-                  </tr>
-                  </tbody>
-                </table>
-                <p>제한 시간: {formatTime(remainingTime)}</p>
-                <button className="purchase-button"
-                        onClick={handlePayment}>결제하기
-                </button>
-                <button className="cancel-button" onClick={handleCancelOrder}>
-                  취소
-                </button>
               </div>
             </div>
         )}
