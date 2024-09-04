@@ -151,6 +151,37 @@ const ProductDetail = ({product}) => {
     }
   };
 
+  const handlePayment = async () => {
+    const userId = localStorage.getItem("userid");
+    const orderId = sessionStorage.getItem("orderId");
+
+    try {
+      const response = await axios.post(
+          `${API_URL}/products/${product.id}/payment`,
+          {
+            userId: userId,
+            orderId: parseInt(orderId, 10), // orderId를 숫자로 변환하여 전송
+            paymentAmount: parseInt(product.paymentAmount, 10)
+          }
+      );
+
+      if (response.data.status === "PAYMENT_COMPLETED") {
+        alert("결제가 완료되었습니다.");
+        closeModal();
+        window.location.reload();
+      } else if (response.data.status === "ITEM_SOLD_OUT") {
+        alert("제품이 품절되었습니다. 주문을 취소합니다.");
+        closeModal();
+        window.location.reload();
+      } else {
+        alert("결제 중 오류가 발생했습니다. 다시 시도해주세요.");
+      }
+    } catch (error) {
+      console.error("결제 처리 중 오류가 발생했습니다:", error);
+      alert("결제 처리 중 오류가 발생했습니다. 다시 시도해주세요.");
+    }
+  }
+
   const closeModal = () => {
     clearInterval(pollingIntervalRef.current);
     clearInterval(countdownIntervalRef.current);
@@ -164,7 +195,6 @@ const ProductDetail = ({product}) => {
     const seconds = timeInSeconds % 60;
     return `${minutes}분 ${seconds}초`;
   };
-
 
   return (
       <div className="product-detail">
@@ -234,7 +264,9 @@ const ProductDetail = ({product}) => {
                   </tbody>
                 </table>
                 <p>제한 시간: {formatTime(remainingTime)}</p>
-                <button className="purchase-button">결제하기</button>
+                <button className="purchase-button"
+                        onClick={handlePayment}>결제하기
+                </button>
                 <button className="cancel-button" onClick={handleCancelOrder}>
                   취소
                 </button>
