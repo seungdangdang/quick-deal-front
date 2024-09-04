@@ -60,7 +60,9 @@ const ProductDetail = ({product}) => {
         if (queueResponse.data.status === "ACCESS_DENIED") {
           startPolling(ticketToken);
         } else if (queueResponse.data.status === "ACCESS_GRANTED") {
-          navigate(`/products/${productId}/payment`, {state: {product}});
+          navigate(`/products/${productId}/payment`, {
+            state: {product, timeLimit: queueResponse.data.timeLimit},
+          });
         }
       }
     } catch (error) {
@@ -106,7 +108,9 @@ const ProductDetail = ({product}) => {
 
         if (queueResponse.data.status === "ACCESS_GRANTED") {
           clearInterval(pollingIntervalRef.current);
-          navigate(`/products/${productId}/payment`, {state: {product}});
+          navigate(`/products/${productId}/payment`, {
+            state: {product, timeLimit: queueResponse.data.timeLimit},
+          });
         } else if (queueResponse.data.status === "ITEM_SOLD_OUT") {
           clearInterval(pollingIntervalRef.current);
           alert("상품이 품절되었습니다.");

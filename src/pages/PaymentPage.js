@@ -6,7 +6,6 @@ const ProductPaymentPage = () => {
   const location = useLocation();
   const { product } = location.state || {};
 
-  console.log(JSON.stringify(product));
   if (!product) {
     return <p>Error: 결제에 필요한 데이터가 누락되었습니다.</p>;
   }

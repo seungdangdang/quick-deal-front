@@ -1,25 +1,29 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, {useEffect, useRef, useState} from "react";
 import axios from "axios";
-import { API_URL } from "../config";
+import {API_URL} from "../config";
+import "../styles/ProductPayment.css";
+import {useLocation} from "react-router-dom";
 
-const PaymentPage = ({ product }) => {
+const PaymentPage = () => {
+  const location = useLocation();
+  const { product, timeLimit } = location.state || {};
   const [remainingTime, setRemainingTime] = useState(null);
   const countdownIntervalRef = useRef(null);
 
   useEffect(() => {
-    if (product && product.timeLimit) {
-      startCountdown(product.timeLimit);
+    if (product && timeLimit) {
+      startCountdown(timeLimit);
     }
-  }, [product]);
+
+    return () => clearInterval(countdownIntervalRef.current);
+  }, [product, timeLimit]);
 
   const startCountdown = (timeLimit) => {
     const targetTime = timeLimit * 1000;
     countdownIntervalRef.current = setInterval(() => {
       const currentTime = new Date().getTime();
-      const remaining = Math.max(
-          0,
-          Math.floor((targetTime - currentTime) / 1000)
-      );
+      const remaining = Math.max(0,
+          Math.floor((targetTime - currentTime) / 1000));
       setRemainingTime(remaining);
 
       if (remaining === 0) {
@@ -38,7 +42,7 @@ const PaymentPage = ({ product }) => {
 
     try {
       await axios.delete(`${API_URL}/orders/${orderId}`, {
-        params: { userId },
+        params: {userId},
       });
 
       alert("주문 취소가 완료되었습니다.");
@@ -86,7 +90,7 @@ const PaymentPage = ({ product }) => {
 
   return (
       <div className="payment-page">
-        <h2 style={{ textAlign: "center", fontWeight: "bold" }}>결제하기</h2>
+        <h2 style={{textAlign: "center", fontWeight: "bold"}}>결제하기</h2>
         <table>
           <thead>
           <tr>
