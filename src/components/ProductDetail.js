@@ -61,7 +61,10 @@ const ProductDetail = ({product}) => {
           startPolling(ticketToken);
         } else if (queueResponse.data.status === "ACCESS_GRANTED") {
           navigate(`/products/${productId}/payment`, {
-            state: {product, timeLimit: queueResponse.data.timeLimit},
+            state: {
+              product,
+              expiredAtEpochSeconds: queueResponse.data.expiredAtEpochSeconds
+            },
           });
         }
       }
@@ -109,7 +112,10 @@ const ProductDetail = ({product}) => {
         if (queueResponse.data.status === "ACCESS_GRANTED") {
           clearInterval(pollingIntervalRef.current);
           navigate(`/products/${productId}/payment`, {
-            state: {product, timeLimit: queueResponse.data.timeLimit},
+            state: {
+              product,
+              expiredAtEpochSeconds: queueResponse.data.expiredAtEpochSeconds
+            },
           });
         } else if (queueResponse.data.status === "ITEM_SOLD_OUT") {
           clearInterval(pollingIntervalRef.current);

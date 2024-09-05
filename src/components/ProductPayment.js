@@ -1,36 +1,47 @@
 import React, {useEffect, useRef, useState} from "react";
 import axios from "axios";
+import dayjs from "dayjs";
 import {API_URL} from "../config";
 import "../styles/ProductPayment.css";
 import {useLocation} from "react-router-dom";
 
 const PaymentPage = () => {
   const location = useLocation();
-  const { product, timeLimit } = location.state || {};
+  const {product, expiredAtEpochSeconds} = location.state || {};
   const [remainingTime, setRemainingTime] = useState(null);
+  const [expiryDateTime, setExpiryDateTime] = useState("");
   const countdownIntervalRef = useRef(null);
 
   useEffect(() => {
-    if (product && timeLimit) {
-      startCountdown(timeLimit);
+    const expiryDate = dayjs.unix(expiredAtEpochSeconds);
+    const formattedExpiryDate = expiryDate.format("YYYY년 M월 D일 H시 m분");
+    setExpiryDateTime(formattedExpiryDate);
+
+    const currentTimeInSeconds = dayjs().unix();
+    const timeLeftInSeconds = expiredAtEpochSeconds - currentTimeInSeconds;
+
+    if (timeLeftInSeconds > 0) {
+      startCountdown(timeLeftInSeconds);
+    } else {
+      alert("시간이 만료되어 결제가 취소됩니다.");
+      handleCancelOrder();
     }
 
     return () => clearInterval(countdownIntervalRef.current);
-  }, [product, timeLimit]);
+  }, [product, expiredAtEpochSeconds]);
 
-  const startCountdown = (timeLimit) => {
-    const targetTime = timeLimit * 1000;
+  const startCountdown = (initialTimeLeft) => {
+    setRemainingTime(initialTimeLeft);
     countdownIntervalRef.current = setInterval(() => {
-      const currentTime = new Date().getTime();
-      const remaining = Math.max(0,
-          Math.floor((targetTime - currentTime) / 1000));
-      setRemainingTime(remaining);
-
-      if (remaining === 0) {
-        clearInterval(countdownIntervalRef.current);
-        alert("시간이 만료되어 결제가 취소됩니다.");
-        handleCancelOrder();
-      }
+      setRemainingTime((prevTime) => {
+        if (prevTime <= 1) {
+          clearInterval(countdownIntervalRef.current);
+          alert("시간이 만료되어 결제가 취소됩니다.");
+          handleCancelOrder();
+          return 0;
+        }
+        return prevTime - 1;
+      });
     }, 1000);
   };
 
@@ -107,7 +118,8 @@ const PaymentPage = () => {
           </tr>
           </tbody>
         </table>
-        <p>제한 시간: {formatTime(remainingTime)}</p>
+        <p>제한 시간: {expiryDateTime} 까지</p>
+        <p>남은 시간: {formatTime(remainingTime)}</p>
         <button className="purchase-button" onClick={handlePayment}>
           결제하기
         </button>
