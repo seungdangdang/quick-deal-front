@@ -42,7 +42,7 @@ const Footer = () => {
                     <Link
                         href="#"
                         sx={{
-                          color: '#aa00ff',
+                          color: '#000000',
                           textDecoration: 'none',
                           marginRight: '15px',
                           fontSize: '0.875rem',
@@ -105,7 +105,7 @@ const Footer = () => {
                   <Link
                       href="#"
                       sx={{
-                        color: '#aa00ff',
+                        color: '#000000',
                         textDecoration: 'none',
                         '&:hover': {textDecoration: 'underline'},
                       }}
@@ -131,7 +131,7 @@ const Footer = () => {
                       target="_blank"
                       rel="noopener"
                       sx={{
-                        color: '#aa00ff',
+                        color: '#000000',
                         textDecoration: 'none',
                         marginLeft: '8px',
                         '&:hover': {textDecoration: 'underline'},

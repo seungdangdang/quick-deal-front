@@ -101,6 +101,7 @@ const ProductDetail = ({product}) => {
             state: {
               product,
               expiredAtEpochSeconds: queueResponse.data.expiredAtEpochSeconds,
+              quantity: quantity,
             },
           });
         }
@@ -154,6 +155,7 @@ const ProductDetail = ({product}) => {
             state: {
               product,
               expiredAtEpochSeconds: queueResponse.data.expiredAtEpochSeconds,
+              quantity: quantity,
             },
           });
         } else if (queueResponse.data.status === "ITEM_SOLD_OUT") {
@@ -226,16 +228,16 @@ const ProductDetail = ({product}) => {
                 component="img"
                 image={mainImage}
                 alt={product.name}
-                sx={{height: 500, objectFit: "cover"}}
+                sx={{height: 600, objectFit: "cover"}}
             />
           </Grid>
           <Grid item xs={12} md={5}>
             <Box>
               <Typography
-                  variant="h4"
+                  variant="h5"
                   component="h2"
                   gutterBottom
-                  sx={{fontWeight: "bold"}}
+                  sx={{fontWeight: "bold", marginTop: 2}}
               >
                 {product.name} [{product.id}]
               </Typography>
@@ -354,7 +356,7 @@ const ProductDetail = ({product}) => {
                   <Typography gutterBottom>결제 페이지 대기 중입니다</Typography>
                   <Typography>내 대기번호: {ticketNumber}</Typography>
                   <Typography variant="body2" color="text.secondary">
-                    현재 대기 중인 인원:{" "}
+                    내 앞 대기 인원:{" "}
                     {remainingInQueue !== null
                         ? `${remainingInQueue}명`
                         : "(계산 중...)"}
@@ -365,10 +367,12 @@ const ProductDetail = ({product}) => {
             )}
           </DialogContent>
           <DialogActions sx={{justifyContent: "center"}}>
-            <Button onClick={handleCancelOrder} color="secondary"
-                    variant="outlined">
-              취소
-            </Button>
+            {isUserLoggedIn && (
+                <Button onClick={handleCancelOrder} color="secondary"
+                        variant="outlined">
+                  취소
+                </Button>
+            )}
           </DialogActions>
         </Dialog>
       </Box>
