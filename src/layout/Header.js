@@ -14,15 +14,18 @@ const Header = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (data) {
+      localStorage.setItem('userid', data.userId);
+      setIsLoggedIn(true);
+    }
+  }, [data]);
+
   const handleLogin = async () => {
     try {
       await postData();
-      if (data) {
-        localStorage.setItem('userid', data.userId);
-        setIsLoggedIn(true);
-      }
     } catch (error) {
-      console.error('Login failed', error)
+      console.error('Login failed', error);
     }
   };
 
