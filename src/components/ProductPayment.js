@@ -23,7 +23,6 @@ const ProductPayment = () => {
     if (timeLeftInSeconds > 0) {
       startCountdown(timeLeftInSeconds);
     } else {
-      alert("시간이 만료되어 결제가 취소됩니다.");
       handleCancelOrder();
     }
     const handleLogout = () => {
