@@ -30,6 +30,8 @@ const Header = () => {
   };
 
   const handleLogout = () => {
+    window.dispatchEvent(new Event('logout'));
+
     localStorage.removeItem("userid");
     setIsLoggedIn(false);
   };

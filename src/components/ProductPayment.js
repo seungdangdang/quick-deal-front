@@ -3,9 +3,9 @@ import axios from "axios";
 import dayjs from "dayjs";
 import {API_URL} from "../config";
 import "../styles/ProductPayment.css";
-import {useLocation} from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
-const PaymentPage = () => {
+const ProductPayment = () => {
   const location = useLocation();
   const {product, expiredAtEpochSeconds} = location.state || {};
   const [remainingTime, setRemainingTime] = useState(null);
@@ -26,8 +26,16 @@ const PaymentPage = () => {
       alert("시간이 만료되어 결제가 취소됩니다.");
       handleCancelOrder();
     }
+    const handleLogout = () => {
+      alert("로그아웃 되었습니다. 결제를 취소하고 메인 페이지로 이동합니다.");
+      handleCancelOrder();
+    };
+    window.addEventListener("logout", handleLogout);
 
-    return () => clearInterval(countdownIntervalRef.current);
+    return () => {
+      clearInterval(countdownIntervalRef.current);
+      window.removeEventListener("logout", handleLogout);
+    };
   }, [product, expiredAtEpochSeconds]);
 
   const startCountdown = (initialTimeLeft) => {
@@ -50,7 +58,7 @@ const PaymentPage = () => {
     const userId = localStorage.getItem("userid");
     sessionStorage.removeItem("orderId");
     sessionStorage.removeItem("ticketToken");
-
+    console.log("orderId: " + orderId + "userId: " + userId);
     try {
       await axios.delete(`${API_URL}/orders/${orderId}`, {
         params: {userId},
@@ -130,4 +138,4 @@ const PaymentPage = () => {
   );
 };
 
-export default PaymentPage;
+export default ProductPayment;
