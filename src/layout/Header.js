@@ -1,12 +1,20 @@
-import React, { useEffect, useState } from "react";
-import { AppBar, Toolbar, Button, InputBase, Box, CircularProgress } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
-import { styled, alpha } from '@mui/material/styles';
-import { API_URL } from "../config";
-
+import React, {useEffect, useState} from "react";
+import {
+  AppBar,
+  Toolbar,
+  Button,
+  InputBase,
+  Box,
+  CircularProgress,
+} from '@mui/material';
+import {Search as SearchIcon} from '@mui/icons-material';
+import {styled, alpha} from '@mui/material/styles';
+import {API_URL} from "../config";
+import {Link} from 'react-router-dom';
 import useAxiosPost from "../hooks/useAxiosPost";
+import {useAuth} from "../context/AuthContext";
 
-const Search = styled('div')(({ theme }) => ({
+const Search = styled('div')(({theme}) => ({
   position: 'relative',
   borderRadius: theme.shape.borderRadius,
   backgroundColor: alpha(theme.palette.common.white, 0.15),
@@ -22,7 +30,7 @@ const Search = styled('div')(({ theme }) => ({
   },
 }));
 
-const SearchIconWrapper = styled('div')(({ theme }) => ({
+const SearchIconWrapper = styled('div')(({theme}) => ({
   padding: theme.spacing(0, 2),
   height: '100%',
   position: 'absolute',
@@ -32,7 +40,7 @@ const SearchIconWrapper = styled('div')(({ theme }) => ({
   justifyContent: 'center',
 }));
 
-const StyledInputBase = styled(InputBase)(({ theme }) => ({
+const StyledInputBase = styled(InputBase)(({theme}) => ({
   color: 'inherit',
   '& .MuiInputBase-input': {
     padding: theme.spacing(1, 1, 1, 0),
@@ -46,41 +54,49 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 }));
 
 const Header = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const { data, loading, postData } = useAxiosPost(`${API_URL}/login`);
+  const {isLoggedIn, handleLogout, handleLogin} = useAuth();
+  const {data, loading, postData} = useAxiosPost(`${API_URL}/login`);
 
   useEffect(() => {
-    const userid = localStorage.getItem('userid');
+    const userid = localStorage.getItem("userid");
     if (userid) {
-      setIsLoggedIn(true);
+      handleLogin(userid);
     }
   }, []);
 
   useEffect(() => {
     if (data) {
-      localStorage.setItem('userid', data.userId);
-      setIsLoggedIn(true);
+      handleLogin(data.userId);
     }
   }, [data]);
 
-  const handleLogin = async () => {
+  const handleLoginRequest = async () => {
     try {
       await postData();
     } catch (error) {
-      console.error('Login failed', error);
+      console.error("Login failed", error);
     }
   };
 
-  const handleLogout = () => {
-    window.dispatchEvent(new Event('logout'));
-    localStorage.removeItem("userid");
-    setIsLoggedIn(false);
-  };
-
   return (
-      <AppBar position="static" sx={{ backgroundColor: '#ffffff', color: '#333', boxShadow: 'none', borderBottom: '1px solid #e0e0e0' }}>
+      <AppBar
+          position="static"
+          sx={{
+            backgroundColor: "#ffffff",
+            color: "#333",
+            boxShadow: "none",
+            borderBottom: "1px solid #e0e0e0",
+          }}
+      >
         <Toolbar>
-          <Box component="img" src={`${process.env.PUBLIC_URL}/logo.png`} alt="Logo" sx={{ height: 40, marginRight: 2 }} />
+          <Link to="/">
+            <Box
+                component="img"
+                src={`${process.env.PUBLIC_URL}/logo.png`}
+                alt="Logo"
+                sx={{height: 40, marginRight: 2}}
+            />
+          </Link>
 
           {/* 검색창 */}
           <Search>
@@ -89,11 +105,11 @@ const Header = () => {
             </SearchIconWrapper>
             <StyledInputBase
                 placeholder="Search…"
-                inputProps={{ 'aria-label': 'search' }}
+                inputProps={{"aria-label": "search"}}
             />
           </Search>
 
-          <Box sx={{ flexGrow: 1 }} />
+          <Box sx={{flexGrow: 1}}/>
 
           {/* 로그인/로그아웃 버튼 */}
           {isLoggedIn ? (
@@ -101,33 +117,29 @@ const Header = () => {
                 <Button
                     onClick={handleLogout}
                     variant="text"
-                    sx={{ color: 'black', marginRight: 1 }}
+                    sx={{color: "black", marginRight: 1}}
                 >
                   로그아웃
                 </Button>
-                <Button
-                    variant="text"
-                    sx={{ color: 'black', marginRight: 1 }}
-                >
+                <Button variant="text" sx={{color: "black", marginRight: 1}}>
                   마이페이지
                 </Button>
               </>
           ) : (
               <>
                 <Button
-                    onClick={handleLogin}
+                    onClick={handleLoginRequest}
                     variant="text"
                     color="secondary"
                     disabled={loading}
-                    startIcon={loading && <CircularProgress size={20} color="inherit" />}
-                    sx={{ marginRight: 1 }}
+                    startIcon={
+                        loading && <CircularProgress size={20} color="inherit"/>
+                    }
+                    sx={{marginRight: 1}}
                 >
-                  {loading ? '로딩 중...' : '로그인'}
+                  {loading ? "로딩 중..." : "로그인"}
                 </Button>
-                <Button
-                    variant="text"
-                    color="secondary"
-                >
+                <Button variant="text" color="secondary">
                   회원가입
                 </Button>
               </>
