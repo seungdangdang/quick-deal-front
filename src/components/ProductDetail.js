@@ -24,7 +24,6 @@ const ProductDetail = ({product}) => {
   const [showQueueModal, setShowQueueModal] = useState(false);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [orderData, setOrderData] = useState(null);
   const [polling, setPolling] = useState(false);
   const [remainingInQueue, setRemainingInQueue] = useState(null);
   const [productId, setProductId] = useState(product.id);
@@ -68,34 +67,33 @@ const ProductDetail = ({product}) => {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${API_URL}/orders`, {
+      const response = await axios.post(`${API_URL}/orders/ticket`, {
         userId: userId,
-        quantityPerProduct: {
-          productId: product.id,
-          quantity: 1,
-        },
+        productId: productId
       });
 
       if (response.data) {
-        const {orderId, ticketToken} = response.data;
+        const ticketToken = response.data.value
 
-        sessionStorage.setItem("orderId", orderId);
-        sessionStorage.setItem("ticketToken", ticketToken);
+        sessionStorage.setItem("productId", product.id);
+        sessionStorage.setItem("ticket", ticketToken);
 
-        setOrderData(response.data);
-        setProductId(product.id);
-
-        const queueResponse = await axios.post(`${API_URL}/queue`, null, {
-          params: {ticketToken},
+        console.log("before queue/status");
+        const queueResponse = await axios.get(`${API_URL}/orders/queue/status`, {
+          params: { ticket: ticketToken },
         });
+        console.log("결제 페이지 접근 상태:", queueResponse.data);
 
         setTicketNumber(queueResponse.data.ticketNumber);
 
-        console.log("결제 페이지 접근 상태:", queueResponse.data);
-
+        console.log( "ticketNumber > " + ticketNumber );
         if (queueResponse.data.status === "ACCESS_DENIED") {
+          console.log( "result > ACCESS_DENIED" );
           startPolling(ticketToken);
         } else if (queueResponse.data.status === "ACCESS_GRANTED") {
+          console.log( "result > ACCESS_GRANTED" );
+          console.log( "state > " + product + "-" + queueResponse.data.expiredAtEpochSeconds + "-" + quantity );
+
           navigate(`/products/${productId}/payment`, {
             state: {
               product,
@@ -106,27 +104,19 @@ const ProductDetail = ({product}) => {
         }
       }
     } catch (error) {
-      console.error("주문 중 오류가 발생했습니다:", error);
-      alert("주문을 처리하는 중 오류가 발생했습니다. 다시 시도해주세요.");
+      console.error("주문 상세 페이지 - 주문 도중 오류가 발생했습니다:", error);
+      alert("주문을 처리하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
       closeModal();
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleCancelOrder = async () => {
-    const orderId = sessionStorage.getItem("orderId");
-    const userId = localStorage.getItem("userid");
     sessionStorage.removeItem("orderId");
     sessionStorage.removeItem("ticketToken");
 
     try {
-      await axios.delete(`${API_URL}/orders/${orderId}`, {
-        data: {
-          userId: userId,
-          productId: productId,
-        },
-      });
       alert("대기 취소가 완료되었습니다.");
       closeModal();
       window.location.reload();
@@ -141,11 +131,9 @@ const ProductDetail = ({product}) => {
 
     pollingIntervalRef.current = setInterval(async () => {
       try {
-        const queueResponse = await axios.post(`${API_URL}/queue`, null, {
-          params: {ticketToken},
+        const queueResponse = await axios.get(`${API_URL}/orders/queue/status`, {
+          params: { ticket: ticketToken },
         });
-
-        setTicketNumber(queueResponse.data.ticketNumber);
 
         console.log("폴링 중... 결제 페이지 접근 상태:", queueResponse.data);
         setRemainingInQueue(queueResponse.data.numberOfRemainingInQueue);

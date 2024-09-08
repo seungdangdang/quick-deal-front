@@ -15,12 +15,14 @@ import {
 const ProductPayment = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const {product, expiredAtEpochSeconds, quantity} = location.state || {};
+  const { product, expiredAtEpochSeconds, quantity } = location.state || {};
   const [remainingTime, setRemainingTime] = useState(null);
   const [expiryDateTime, setExpiryDateTime] = useState("");
   const countdownIntervalRef = useRef(null);
 
   useEffect(() => {
+    handleCreateOrder();
+
     const expiryDate = dayjs.unix(expiredAtEpochSeconds);
     const formattedExpiryDate = expiryDate.format("YYYY년 M월 D일 H시 m분");
     setExpiryDateTime(formattedExpiryDate);
@@ -60,11 +62,32 @@ const ProductPayment = () => {
     }, 1000);
   };
 
+  const handleCreateOrder = async () => {
+    const userId = localStorage.getItem("userid");
+
+    try {
+      const response = await axios.post(`${API_URL}/orders`, {
+        userId: userId,
+        quantityPerProduct: {
+          productId: product.id,
+          quantity: 1,
+        },
+      });
+
+      const orderId = response.data;
+      sessionStorage.setItem("orderId", orderId);
+    } catch (error) {
+      console.error("주문 중 오류가 발생했습니다:", error);
+      alert("주문을 처리하는 중 오류가 발생했습니다. 다시 시도해주세요.");
+    }
+  };
+
   const handleCancelOrder = async () => {
     const orderId = sessionStorage.getItem("orderId");
     const userId = localStorage.getItem("userid");
     sessionStorage.removeItem("orderId");
-    sessionStorage.removeItem("ticketToken");
+    sessionStorage.removeItem("productId");
+    sessionStorage.removeItem("ticket");
     try {
       await axios.delete(`${API_URL}/orders/${orderId}`, {
         data: {
@@ -97,12 +120,21 @@ const ProductPayment = () => {
 
       if (response.data.status === "PAYMENT_COMPLETED") {
         alert("결제가 완료되었습니다.");
+        sessionStorage.removeItem("orderId");
+        sessionStorage.removeItem("productId");
+        sessionStorage.removeItem("ticket");
         navigate("/");
       } else if (response.data.status === "ITEM_SOLD_OUT") {
         alert("제품이 품절되었습니다. 주문을 취소합니다.");
+        sessionStorage.removeItem("orderId", orderId);
+        sessionStorage.removeItem("productId");
+        sessionStorage.removeItem("ticket");
         navigate("/");
       } else {
         alert("결제 중 오류가 발생했습니다. 다시 시도해주세요.");
+        sessionStorage.removeItem("orderId", orderId);
+        sessionStorage.removeItem("productId");
+        sessionStorage.removeItem("ticket");
       }
     } catch (error) {
       console.error("결제 처리 중 오류가 발생했습니다:", error);
