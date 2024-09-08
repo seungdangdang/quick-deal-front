@@ -1,12 +1,22 @@
 import React from 'react';
-import '../styles/ProductList.css';
 import {useNavigate} from "react-router-dom";
+import {
+  Grid,
+  Card,
+  CardContent,
+  CardMedia,
+  Typography,
+  Box,
+} from '@mui/material';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import CategoryBadge from './CategoryBadge';
 
 const ProductList = ({products}) => {
   const navigate = useNavigate();
 
   if (!Array.isArray(products) || products.length === 0) {
-    return <p>No products available</p>;
+    return <Typography variant="h6" align="center">No products
+      available</Typography>;
   }
 
   const handleProductClick = (productId) => {
@@ -14,23 +24,67 @@ const ProductList = ({products}) => {
   };
 
   return (
-      <div className='product-grid'>
+      <Grid container spacing={5} sx={{padding: '50px'}}>
         {products.map((product) => (
-            <div
-                key={product.id}
-                className='product-card'
-                onClick={() => handleProductClick(product.id)}
-                style={{cursor: 'pointer'}}
-            >
-              <div className="product-list-image-placeholder"></div>
-              <p>상품코드 [{product.id}]</p>
-              <h3>{product.name}</h3>
-              <p>{product.price}</p>
-              <p>{product.description}</p>
-            </div>
+            <Grid item key={product.id} xs={12} sm={6} md={4} lg={3}>
+              <Card
+                  onClick={() => handleProductClick(product.id)}
+                  sx={{cursor: 'pointer', '&:hover': {boxShadow: 6}}}
+              >
+                {/* 이미지 */}
+                <CardMedia
+                    component="img"
+                    image={product.imageUrl
+                        || "https://via.placeholder.com/300"}
+                    alt={product.name}
+                    sx={{height: 350, objectFit: 'cover'}}
+                />
+                <CardContent>
+                  {/* 카테고리 배지 */}
+                  <CategoryBadge categoryType={product.categoryType}
+                                 categoryName={product.categoryName}/>
+                  {/* 제품명 */}
+                  <Typography variant="body1" component="div"
+                              sx={{fontWeight: 'bold', marginBottom: 0.5}}>
+                    {product.name} [{product.id}]
+                  </Typography>
+
+                  {/* 가격 */}
+                  <Typography variant="h6" color="secondary"
+                              sx={{fontWeight: 'bold'}}>
+                    {product.price.toLocaleString()}원
+                  </Typography>
+                  {/* 배송 정보 */}
+                  <Box display="flex" alignItems="center" sx={{marginTop: 1}}>
+                    <LocalShippingIcon color="secondary"
+                                       sx={{marginRight: 0.5}}/>
+                    <Typography variant="caption" color="text.secondary">
+                      빠른배송
+                    </Typography>
+                  </Box>
+                  {/* 리뷰 및 평점 */}
+                  <Box display="flex" alignItems="center" sx={{marginTop: 1}}>
+                    <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          display: '-webkit-box',
+                          overflow: 'hidden',
+                          WebkitBoxOrient: 'vertical',
+                          WebkitLineClamp: 2,
+                          textOverflow: 'ellipsis',
+                          marginTop: 1,
+                        }}
+                    >
+                      {product.description}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
         ))}
-      </div>
-  )
-}
+      </Grid>
+  );
+};
 
 export default ProductList;

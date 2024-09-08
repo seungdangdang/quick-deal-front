@@ -2,12 +2,20 @@ import React, {useEffect, useRef, useState} from "react";
 import axios from "axios";
 import dayjs from "dayjs";
 import {API_URL} from "../config";
-import "../styles/ProductPayment.css";
-import { useLocation } from "react-router-dom";
+import {useLocation, useNavigate} from "react-router-dom";
+import {
+  Box,
+  Button,
+  Typography,
+  Paper,
+  Container,
+  Divider,
+} from "@mui/material";
 
 const ProductPayment = () => {
   const location = useLocation();
-  const {product, expiredAtEpochSeconds} = location.state || {};
+  const navigate = useNavigate();
+  const {product, expiredAtEpochSeconds, quantity} = location.state || {};
   const [remainingTime, setRemainingTime] = useState(null);
   const [expiryDateTime, setExpiryDateTime] = useState("");
   const countdownIntervalRef = useRef(null);
@@ -35,7 +43,7 @@ const ProductPayment = () => {
       clearInterval(countdownIntervalRef.current);
       window.removeEventListener("logout", handleLogout);
     };
-  }, [product, expiredAtEpochSeconds]);
+  }, [product, expiredAtEpochSeconds, quantity]);
 
   const startCountdown = (initialTimeLeft) => {
     setRemainingTime(initialTimeLeft);
@@ -57,14 +65,16 @@ const ProductPayment = () => {
     const userId = localStorage.getItem("userid");
     sessionStorage.removeItem("orderId");
     sessionStorage.removeItem("ticketToken");
-    console.log("orderId: " + orderId + "userId: " + userId);
     try {
       await axios.delete(`${API_URL}/orders/${orderId}`, {
-        params: {userId},
+        data: {
+          userId: userId,
+          productId: product.id,
+        },
       });
 
       alert("주문 취소가 완료되었습니다.");
-      window.location.href = "/";
+      navigate("/");
     } catch (error) {
       console.error("주문 취소 중 오류가 발생했습니다:", error);
       alert("주문 취소 중 오류가 발생했습니다. 다시 시도해주세요.");
@@ -87,10 +97,10 @@ const ProductPayment = () => {
 
       if (response.data.status === "PAYMENT_COMPLETED") {
         alert("결제가 완료되었습니다.");
-        window.location.href = "/";
+        navigate("/");
       } else if (response.data.status === "ITEM_SOLD_OUT") {
         alert("제품이 품절되었습니다. 주문을 취소합니다.");
-        window.location.href = "/";
+        navigate("/");
       } else {
         alert("결제 중 오류가 발생했습니다. 다시 시도해주세요.");
       }
@@ -107,33 +117,109 @@ const ProductPayment = () => {
   };
 
   return (
-      <div className="payment-page">
-        <h2 style={{textAlign: "center", fontWeight: "bold"}}>결제하기</h2>
-        <table>
-          <thead>
-          <tr>
-            <th>주문 상품</th>
-            <th>수량</th>
-            <th>주문 금액</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr>
-            <td>{product.name}</td>
-            <td>1</td>
-            <td>{product.price}</td>
-          </tr>
-          </tbody>
-        </table>
-        <p>제한 시간: {expiryDateTime} 까지</p>
-        <p>남은 시간: {formatTime(remainingTime)}</p>
-        <button className="purchase-button" onClick={handlePayment}>
+      <Container maxWidth="sm" sx={{mt: 5, textAlign: "center"}}>
+        <Typography variant="h4" component="h2" fontWeight="bold" gutterBottom>
           결제하기
-        </button>
-        <button className="cancel-button" onClick={handleCancelOrder}>
-          취소
-        </button>
-      </div>
+        </Typography>
+        <Paper
+            elevation={3}
+            sx={{
+              p: 2,
+              mb: 3,
+              borderRadius: 2,
+              border: "1px dashed grey",
+              maxWidth: "500px",
+              minHeight: "400px",
+              mx: "auto",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              height: "auto",
+            }}
+        >
+          <Typography variant="h6" align="center" gutterBottom>
+            주문내역
+          </Typography>
+          <Divider sx={{mb: 1}}/>
+
+          {/* 상품 구성 */}
+          <Box sx={{mb: 2}}>
+            <Box sx={{display: "flex", justifyContent: "space-between", mb: 1}}>
+              <Typography variant="body2" fontWeight="bold">
+                주문상품
+              </Typography>
+              <Typography variant="body2" fontWeight="bold">
+                수량
+              </Typography>
+            </Box>
+            <Box sx={{display: "flex", justifyContent: "space-between", mb: 1}}>
+              <Typography variant="body2">{product.name}</Typography>
+              <Typography variant="body2">{quantity}</Typography>
+            </Box>
+          </Box>
+
+          <Divider sx={{my: 1}}/>
+
+          {/* 합계 및 시간 */}
+          <Box sx={{textAlign: "right", mt: 2}}>
+            <Typography variant="body2">합계</Typography>
+            <Typography variant="body2" fontWeight="bold">
+              {product.price.toLocaleString()}원
+            </Typography>
+          </Box>
+          <Divider sx={{my: 1}}/>
+
+          {/* 제한 시간 및 남은 시간 */}
+          <Box sx={{textAlign: "right"}}>
+            <Typography
+                variant="body2"
+                color="textSecondary"
+                sx={{fontStyle: "italic"}}
+            >
+              {expiryDateTime} 까지 결제하지 않을 시 주문이 취소됩니다
+            </Typography>
+            <Typography
+                variant="body2"
+                color="textSecondary"
+                sx={{fontStyle: "italic", color: "red"}}
+            >
+              {formatTime(remainingTime)}
+            </Typography>
+          </Box>
+        </Paper>
+
+        {/* 버튼 */}
+        <Box sx={{display: "flex", justifyContent: "center", gap: 2, mt: 2}}>
+          <Button
+              variant="contained"
+              color="success"
+              onClick={handlePayment}
+              sx={{
+                borderRadius: "20px",
+                px: 4,
+                py: 1,
+                fontSize: "16px",
+                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+              }}
+          >
+            결제
+          </Button>
+          <Button
+              variant="contained"
+              color="error"
+              onClick={handleCancelOrder}
+              sx={{
+                borderRadius: "20px",
+                px: 4,
+                py: 1,
+                fontSize: "16px",
+                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+              }}
+          >
+            취소
+          </Button>
+        </Box>
+      </Container>
   );
 };
 
