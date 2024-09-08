@@ -67,7 +67,10 @@ const ProductPayment = () => {
     sessionStorage.removeItem("ticketToken");
     try {
       await axios.delete(`${API_URL}/orders/${orderId}`, {
-        params: {userId},
+        data: {
+          userId: userId,
+          productId: product.id,
+        },
       });
 
       alert("주문 취소가 완료되었습니다.");
@@ -159,7 +162,7 @@ const ProductPayment = () => {
 
           {/* 합계 및 시간 */}
           <Box sx={{textAlign: "right", mt: 2}}>
-            <Typography variant="body2">합계:</Typography>
+            <Typography variant="body2">합계</Typography>
             <Typography variant="body2" fontWeight="bold">
               {product.price.toLocaleString()}원
             </Typography>
