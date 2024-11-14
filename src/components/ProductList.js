@@ -11,6 +11,15 @@ import {
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import CategoryBadge from './CategoryBadge';
 
+// 모든 이미지를 미리 가져오는 로직
+const images = require.context('../assets/images/quickdeal-product-images', true, /\.(png|jpe?g|svg)$/);
+
+const getImageUrl = (productId) => {
+  // 해당 상품 ID에 맞는 첫 번째 이미지를 찾습니다.
+  const imagePath = images.keys().find((key) => key.includes(`/${productId}/`));
+  return imagePath ? images(imagePath) : "https://via.placeholder.com/300";
+};
+
 const ProductList = ({products}) => {
   const navigate = useNavigate();
 
@@ -34,10 +43,9 @@ const ProductList = ({products}) => {
                 {/* 이미지 */}
                 <CardMedia
                     component="img"
-                    image={product.imageUrl
-                        || "https://via.placeholder.com/300"}
+                    image={product.imageUrl || getImageUrl(product.id)}
                     alt={product.name}
-                    sx={{height: 350, objectFit: 'cover'}}
+                    sx={{ height: 350, objectFit: 'cover' }}
                 />
                 <CardContent>
                   {/* 카테고리 배지 */}
