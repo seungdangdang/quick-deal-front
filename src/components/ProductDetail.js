@@ -20,11 +20,20 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import CategoryBadge from "../components/CategoryBadge";
 
+const images = require.context('../assets/images/quickdeal-product-images', true, /\.(png|jpe?g|svg|avif|webp)$/);
+
+// 상품 ID에 해당하는 이미지 경로를 가져오는 함수
+const getProductImages = (productId) => {
+  // 모든 이미지 경로에서 해당 상품 ID가 포함된 경로를 필터링
+  const imagePaths = images.keys().filter((key) => key.includes(`/${productId}/`));
+  // 해당 이미지 경로들을 불러와 URL 배열로 변환
+  return imagePaths.map((path) => images(path));
+};
+
 const ProductDetail = ({product}) => {
   const [showQueueModal, setShowQueueModal] = useState(false);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [orderData, setOrderData] = useState(null);
   const [polling, setPolling] = useState(false);
   const [remainingInQueue, setRemainingInQueue] = useState(null);
   const [productId, setProductId] = useState(product.id);
@@ -32,15 +41,9 @@ const ProductDetail = ({product}) => {
   const [quantity, setQuantity] = useState(1);
   const pollingIntervalRef = useRef(null);
 
-  const [mainImage, setMainImage] = useState(
-      "https://via.placeholder.com/500?text=Image+1");
-
-  const [thumbnailColors] = useState(
-      ["#FFD700",
-        "#8FBC8F",
-        "#87CEEB",
-        "#DDA0DD",
-      ]);
+  // 해당 상품 ID에 대한 이미지 목록을 가져옴
+  const productImages = getProductImages(product.id);
+  const [mainImage, setMainImage] = useState(productImages[0] || "https://via.placeholder.com/300");
   const [selectedThumbnail, setSelectedThumbnail] = useState(0);
 
   const navigate = useNavigate();
@@ -51,7 +54,7 @@ const ProductDetail = ({product}) => {
 
   const handleThumbnailClick = (index) => {
     setSelectedThumbnail(index);
-    setMainImage(`https://via.placeholder.com/500?text=Image+${index + 1}`);
+    setMainImage(productImages[index]); // 선택한 썸네일 이미지를 메인 이미지로 설정
   };
 
   const handlePurchase = async () => {
@@ -68,34 +71,35 @@ const ProductDetail = ({product}) => {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${API_URL}/orders`, {
+      const response = await axios.post(`${API_URL}/orders/ticket`, {
         userId: userId,
-        quantityPerProduct: {
-          productId: product.id,
-          quantity: 1,
-        },
+        productId: productId
       });
 
       if (response.data) {
-        const {orderId, ticketToken} = response.data;
+        const ticketToken = response.data.value
 
-        sessionStorage.setItem("orderId", orderId);
-        sessionStorage.setItem("ticketToken", ticketToken);
+        sessionStorage.setItem("productId", product.id);
+        sessionStorage.setItem("ticket", ticketToken);
 
-        setOrderData(response.data);
-        setProductId(product.id);
-
-        const queueResponse = await axios.post(`${API_URL}/queue`, null, {
-          params: {ticketToken},
-        });
+        console.log("before queue/status");
+        const queueResponse = await axios.get(`${API_URL}/orders/queue/status`,
+            {
+              params: {ticket: ticketToken},
+            });
+        console.log("결제 페이지 접근 상태:", queueResponse.data);
 
         setTicketNumber(queueResponse.data.ticketNumber);
 
-        console.log("결제 페이지 접근 상태:", queueResponse.data);
-
+        console.log("ticketNumber > " + ticketNumber);
         if (queueResponse.data.status === "ACCESS_DENIED") {
+          console.log("result > ACCESS_DENIED");
           startPolling(ticketToken);
         } else if (queueResponse.data.status === "ACCESS_GRANTED") {
+          console.log("result > ACCESS_GRANTED");
+          console.log("state > " + product + "-"
+              + queueResponse.data.expiredAtEpochSeconds + "-" + quantity);
+
           navigate(`/products/${productId}/payment`, {
             state: {
               product,
@@ -106,27 +110,19 @@ const ProductDetail = ({product}) => {
         }
       }
     } catch (error) {
-      console.error("주문 중 오류가 발생했습니다:", error);
-      alert("주문을 처리하는 중 오류가 발생했습니다. 다시 시도해주세요.");
+      console.error("주문 상세 페이지 - 주문 도중 오류가 발생했습니다:", error);
+      alert("주문을 처리하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
       closeModal();
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleCancelOrder = async () => {
-    const orderId = sessionStorage.getItem("orderId");
-    const userId = localStorage.getItem("userid");
     sessionStorage.removeItem("orderId");
     sessionStorage.removeItem("ticketToken");
 
     try {
-      await axios.delete(`${API_URL}/orders/${orderId}`, {
-        data: {
-          userId: userId,
-          productId: productId,
-        },
-      });
       alert("대기 취소가 완료되었습니다.");
       closeModal();
       window.location.reload();
@@ -141,11 +137,10 @@ const ProductDetail = ({product}) => {
 
     pollingIntervalRef.current = setInterval(async () => {
       try {
-        const queueResponse = await axios.post(`${API_URL}/queue`, null, {
-          params: {ticketToken},
-        });
-
-        setTicketNumber(queueResponse.data.ticketNumber);
+        const queueResponse = await axios.get(`${API_URL}/orders/queue/status`,
+            {
+              params: {ticket: ticketToken},
+            });
 
         console.log("폴링 중... 결제 페이지 접근 상태:", queueResponse.data);
         setRemainingInQueue(queueResponse.data.numberOfRemainingInQueue);
@@ -201,23 +196,23 @@ const ProductDetail = ({product}) => {
     <Grid container spacing={3}>
       <Grid item xs={12} md={2}>
         <Box sx={{display: "flex", flexDirection: "column", gap: 0.5}}>
-          {thumbnailColors.map((color, index) => (<CardMedia
-              key={index}
-              component="img"
-              image={`https://via.placeholder.com/60/${color.slice(
-                  1)}/ffffff?text=${index + 1}`}
-              alt={`Thumbnail ${index + 1}`}
-              sx={{
-                width: 60,
-                height: 60,
-                border:
-                    `1px solid ${selectedThumbnail === index ? "#333"
+          {productImages.map((image, index) => (
+              <CardMedia
+                  key={index}
+                  component="img"
+                  image={image}
+                  alt={`Thumbnail ${index + 1}`}
+                  sx={{
+                    width: 60,
+                    height: 60,
+                    border: `1px solid ${selectedThumbnail === index ? "#333"
                         : "#ddd"}`,
-                cursor: "pointer",
-                "&:hover": {border: "1px solid #333"},
-              }}
-              onClick={() => handleThumbnailClick(index)}
-          />))}
+                    cursor: "pointer",
+                    "&:hover": {border: "1px solid #333"},
+                  }}
+                  onClick={() => handleThumbnailClick(index)}
+              />
+          ))}
         </Box>
       </Grid>
       <Grid item xs={5}>
@@ -225,7 +220,7 @@ const ProductDetail = ({product}) => {
             component="img"
             image={mainImage}
             alt={product.name}
-            sx={{height: 600, objectFit: "cover"}}
+            sx={{ height: 600, objectFit: "cover" }}
         />
       </Grid>
       <Grid item xs={12} md={5}>
